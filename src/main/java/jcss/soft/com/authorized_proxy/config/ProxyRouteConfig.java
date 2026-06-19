@@ -20,6 +20,7 @@ public class ProxyRouteConfig {
         return builder.routes()
                 .route("pass-through", r -> r
                         .path("/**")
+                        .filters(f -> f.stripPrefix(4))
                         .uri(originUrl))
                 .build();
     }
