@@ -40,31 +40,19 @@ public class ResponseWrappingFilter implements GlobalFilter, Ordered {
         log.info("ORIGINAL RESPONSE HEADERS: {}", originalResponse.getHeaders());
 
         ServerHttpResponseDecorator decoratedResponse = new ServerHttpResponseDecorator(originalResponse) {
-
             @Override
             public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
-
-                log.info("Decorated response writeWith called. Body publisher: {}", body);
-
                 return DataBufferUtils.join(Flux.from(body))
                         .flatMap(dataBuffer -> {
-                            log.info("Joined response body DataBuffer: {}", dataBuffer);
-
                             byte[] bytes = new byte[dataBuffer.readableByteCount()];
                             dataBuffer.read(bytes);
-
-                            log.info("Original response body as string: {}", new String(bytes, StandardCharsets.UTF_8));
 
                             DataBufferUtils.release(dataBuffer);
 
                             String originalBody = new String(bytes, StandardCharsets.UTF_8);
 
-                            log.info("Wrapping original body in new JSON structure...");
-
                             Map<String, Object> wrapped = Map.of(
-                                    "request", Map.of(
-                                            "data", originalBody
-                                    )
+                                    "request", Map.of("data", originalBody)
                             );
 
                             byte[] newBody;
@@ -75,10 +63,10 @@ public class ResponseWrappingFilter implements GlobalFilter, Ordered {
                                         .getBytes(StandardCharsets.UTF_8);
                             }
 
-                            log.info("New wrapped response body as string: {}", new String(newBody, StandardCharsets.UTF_8));
                             DataBuffer buffer = bufferFactory.wrap(newBody);
-//                            return super.writeWith(Mono.just(buffer));
-                            return originalResponse.writeWith(Mono.just(buffer));
+
+                            // ✅ IMPORTANT FIX HERE
+                            return getDelegate().writeWith(Mono.just(buffer));
                         });
             }
         };
