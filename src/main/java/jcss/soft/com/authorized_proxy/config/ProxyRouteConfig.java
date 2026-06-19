@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ProxyRouteConfig {
 
-    @Value("${original_url}")
+    @Value("${ORIGIN_URL}")
     private String originUrl;
 
     @Bean
