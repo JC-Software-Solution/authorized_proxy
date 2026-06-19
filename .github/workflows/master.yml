@@ -55,11 +55,11 @@ jobs:
           
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-          echo "GHCR_IMAGE=ghcr.io/jc-software-solution/super-proxy:latest" >> $GITHUB_ENV
-          echo "GHCR_IMAGE_VERSION=ghcr.io/jc-software-solution/super-proxy:$VERSION" >> $GITHUB_ENV
+          echo "GHCR_IMAGE=ghcr.io/jc-software-solution/authorized_proxy:latest" >> $GITHUB_ENV
+          echo "GHCR_IMAGE_VERSION=ghcr.io/jc-software-solution/authorized_proxy:$VERSION" >> $GITHUB_ENV
 
-          echo "DOCKER_IMAGE=$DOCKER_USER/super-proxy:latest" >> $GITHUB_ENV
-          echo "DOCKER_IMAGE_VERSION=$DOCKER_USER/super-proxy:$VERSION" >> $GITHUB_ENV
+          echo "DOCKER_IMAGE=$DOCKER_USER/authorized_proxy:latest" >> $GITHUB_ENV
+          echo "DOCKER_IMAGE_VERSION=$DOCKER_USER/authorized_proxy:$VERSION" >> $GITHUB_ENV
 
       # ---------------------------
       # 🏗 BUILD + PUSH IMAGE
