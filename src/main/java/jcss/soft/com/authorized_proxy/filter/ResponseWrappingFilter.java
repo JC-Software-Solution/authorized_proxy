@@ -77,7 +77,8 @@ public class ResponseWrappingFilter implements GlobalFilter, Ordered {
 
                             log.info("New wrapped response body as string: {}", new String(newBody, StandardCharsets.UTF_8));
                             DataBuffer buffer = bufferFactory.wrap(newBody);
-                            return super.writeWith(Mono.just(buffer));
+//                            return super.writeWith(Mono.just(buffer));
+                            return originalResponse.writeWith(Mono.just(buffer));
                         });
             }
         };
