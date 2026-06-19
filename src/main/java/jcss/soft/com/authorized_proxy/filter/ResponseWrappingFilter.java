@@ -3,11 +3,14 @@ package jcss.soft.com.authorized_proxy.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.reactivestreams.Publisher;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
+import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.http.server.reactive.ServerHttpResponseDecorator;
 import org.springframework.stereotype.Component;
@@ -20,6 +23,7 @@ import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class ResponseWrappingFilter implements GlobalFilter, Ordered {
 
     private final ObjectMapper objectMapper;
@@ -29,29 +33,34 @@ public class ResponseWrappingFilter implements GlobalFilter, Ordered {
 
         ServerHttpResponse originalResponse = exchange.getResponse();
         DataBufferFactory bufferFactory = originalResponse.bufferFactory();
+        log.info("ORIGINAL RESPONSE: {}", originalResponse);
+        log.info("ORIGINAL RESPONSE HEADERS: {}", originalResponse.getHeaders());
 
         ServerHttpResponseDecorator decoratedResponse = new ServerHttpResponseDecorator(originalResponse) {
 
             @Override
-            public Mono<Void> writeWith(org.reactivestreams.Publisher<? extends DataBuffer> body) {
+            public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
 
-                Flux<? extends DataBuffer> fluxBody = Flux.from(body);
+                log.info("Decorated response writeWith called. Body publisher: {}", body);
 
-                return super.writeWith(
-                        fluxBody.collectList().flatMap(dataBuffers -> {
+                return DataBufferUtils.join(Flux.from(body))
+                        .flatMap(dataBuffer -> {
+                            log.info("Joined response body DataBuffer: {}", dataBuffer);
 
-                            StringBuilder bodyString = new StringBuilder();
+                            byte[] bytes = new byte[dataBuffer.readableByteCount()];
+                            dataBuffer.read(bytes);
 
-                            dataBuffers.forEach(dataBuffer -> {
-                                byte[] bytes = new byte[dataBuffer.readableByteCount()];
-                                dataBuffer.read(bytes);
-                                bodyString.append(new String(bytes, StandardCharsets.UTF_8));
-                            });
+                            log.info("Original response body as string: {}", new String(bytes, StandardCharsets.UTF_8));
 
-                            // Wrap original response
+                            DataBufferUtils.release(dataBuffer);
+
+                            String originalBody = new String(bytes, StandardCharsets.UTF_8);
+
+                            log.info("Wrapping original body in new JSON structure...");
+
                             Map<String, Object> wrapped = Map.of(
                                     "request", Map.of(
-                                            "data", bodyString.toString()
+                                            "data", originalBody
                                     )
                             );
 
@@ -59,14 +68,14 @@ public class ResponseWrappingFilter implements GlobalFilter, Ordered {
                             try {
                                 newBody = objectMapper.writeValueAsBytes(wrapped);
                             } catch (Exception e) {
-                                newBody = ("{\"request\":{\"data\":\"error wrapping response\"}}")
+                                newBody = "{\"request\":{\"data\":\"error\"}}"
                                         .getBytes(StandardCharsets.UTF_8);
                             }
 
+                            log.info("New wrapped response body as string: {}", new String(newBody, StandardCharsets.UTF_8));
                             DataBuffer buffer = bufferFactory.wrap(newBody);
-                            return Mono.just(buffer);
-                        })
-                );
+                            return super.writeWith(Mono.just(buffer));
+                        });
             }
         };
 
