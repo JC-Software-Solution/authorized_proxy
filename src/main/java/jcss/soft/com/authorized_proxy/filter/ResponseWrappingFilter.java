@@ -69,8 +69,13 @@ public class ResponseWrappingFilter implements GlobalFilter, Ordered {
 
                             DataBuffer buffer = bufferFactory.wrap(newBody);
 
-                            originalResponse.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-                            originalResponse.getHeaders().remove(HttpHeaders.CONTENT_LENGTH);
+                            // Set headers on the decorated response so the client receives correct
+                            // Content-Type and Content-Length. Removing Content-Length can leave
+                            // the connection without a proper end-marker which may cause the
+                            // client to receive a truncated payload.
+                            getHeaders().setContentType(MediaType.APPLICATION_JSON);
+                            getHeaders().setContentLength(newBody.length);
+
                             return getDelegate().writeWith(Mono.just(buffer));
                         });
             }
