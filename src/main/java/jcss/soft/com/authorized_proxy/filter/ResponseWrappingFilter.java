@@ -11,6 +11,8 @@ import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.http.server.reactive.ServerHttpResponseDecorator;
 import org.springframework.stereotype.Component;
@@ -40,8 +42,10 @@ public class ResponseWrappingFilter implements GlobalFilter, Ordered {
         log.info("ORIGINAL RESPONSE HEADERS: {}", originalResponse.getHeaders());
 
         ServerHttpResponseDecorator decoratedResponse = new ServerHttpResponseDecorator(originalResponse) {
+
             @Override
             public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
+
                 return DataBufferUtils.join(Flux.from(body))
                         .flatMap(dataBuffer -> {
                             byte[] bytes = new byte[dataBuffer.readableByteCount()];
@@ -65,7 +69,8 @@ public class ResponseWrappingFilter implements GlobalFilter, Ordered {
 
                             DataBuffer buffer = bufferFactory.wrap(newBody);
 
-                            // ✅ IMPORTANT FIX HERE
+                            originalResponse.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+                            originalResponse.getHeaders().remove(HttpHeaders.CONTENT_LENGTH);
                             return getDelegate().writeWith(Mono.just(buffer));
                         });
             }
