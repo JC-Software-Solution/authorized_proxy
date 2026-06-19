@@ -82,9 +82,8 @@ public class ResponseWrappingFilter implements GlobalFilter, Ordered {
             }
         };
 
-        Mono<Void> result = chain.filter(exchange.mutate().response(decoratedResponse).build());
-        log.info("Filter chain result: {}", result);
-        return result;
+        log.info("Decorated response created: {}", decoratedResponse);
+        return chain.filter(exchange.mutate().response(decoratedResponse).build());
     }
 
     @Override
