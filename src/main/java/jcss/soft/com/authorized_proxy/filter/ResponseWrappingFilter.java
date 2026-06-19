@@ -31,6 +31,9 @@ public class ResponseWrappingFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
 
+        log.info("REQUEST URI: {}", exchange.getRequest().getURI());
+        log.info("ORIGINAL PATH: {}", exchange.getRequest().getPath());
+
         ServerHttpResponse originalResponse = exchange.getResponse();
         DataBufferFactory bufferFactory = originalResponse.bufferFactory();
         log.info("ORIGINAL RESPONSE: {}", originalResponse);
